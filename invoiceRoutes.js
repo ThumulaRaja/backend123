@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const cors = require('cors');
-const puppeteer = require('puppeteer');
 const util = require('util');
 const fs = require('fs');
 const path = require('path');
