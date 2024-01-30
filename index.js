@@ -12,14 +12,14 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'nihalgemsdb123',
+    password: '',
     database: 'erp',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
 
-//console.log('MySQL connection pool created successfully');
+console.log('MySQL connection pool created successfully');
 
 // Export the pool for use in other files
 module.exports = pool;
@@ -37,5 +37,5 @@ app.use(require('./invoiceRoutes.js'));
 
 // Start the server
 app.listen(port, () => {
-    //console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
