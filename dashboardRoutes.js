@@ -229,4 +229,74 @@ router.post('/getCashDashboardData', async (req, res) => {
 });
 
 
+router.post('/getCashBookSumData', async (req, res) => {
+    //console.log('Get cash dashboard data request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+
+        const buyCashOutTransactionsQuery = await pool.query(`
+            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT
+            FROM transactions
+            WHERE IS_ACTIVE=1 AND (TYPE = "Buying" OR TYPE = "B Payment") AND METHOD = "Cash"
+        `);
+
+        const sellCashInTransactionsQuery = await pool.query(`
+            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT
+            FROM transactions
+            WHERE IS_ACTIVE=1 AND (TYPE = "Selling" OR TYPE = "S Payment") AND METHOD = "Cash"
+        `);
+
+        const CashExpenses = await pool.query(`
+            SELECT SUM(AMOUNT) AS AMOUNT
+            FROM expenses
+            WHERE IS_ACTIVE=1 AND METHOD = "Cash"
+        `);
+
+        const buyBankOutTransactionsQuery = await pool.query(`
+            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT
+            FROM transactions
+            WHERE IS_ACTIVE=1 AND (TYPE = "Buying" OR TYPE = "B Payment") AND METHOD = "Bank"
+        `);
+
+        const sellBankInTransactionsQuery = await pool.query(`
+            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT
+            FROM transactions
+            WHERE IS_ACTIVE=1 AND (TYPE = "Selling" OR TYPE = "S Payment") AND METHOD = "Bank"
+        `);
+
+        const BankExpenses = await pool.query(`
+            SELECT SUM(AMOUNT) AS AMOUNT
+            FROM expenses
+            WHERE IS_ACTIVE=1 AND METHOD = "Bank"
+        `);
+
+        const buyCashOutTransactions = buyCashOutTransactionsQuery[0].AMOUNT && CashExpenses[0].AMOUNT ? buyCashOutTransactionsQuery[0].AMOUNT + CashExpenses[0].AMOUNT : buyCashOutTransactionsQuery[0].AMOUNT ? buyCashOutTransactionsQuery[0].AMOUNT : CashExpenses[0].AMOUNT ? CashExpenses[0].AMOUNT : 0;
+        const sellCashInTransactions = sellCashInTransactionsQuery[0].AMOUNT ? sellCashInTransactionsQuery[0].AMOUNT : 0;
+
+        const buyBankOutTransactions = buyBankOutTransactionsQuery[0].AMOUNT && BankExpenses[0].AMOUNT ? buyBankOutTransactionsQuery[0].AMOUNT + BankExpenses[0].AMOUNT : buyBankOutTransactionsQuery[0].AMOUNT ? buyBankOutTransactionsQuery[0].AMOUNT : BankExpenses[0].AMOUNT ? BankExpenses[0].AMOUNT : 0;
+        const sellBankInTransactions = sellBankInTransactionsQuery[0].AMOUNT ? sellBankInTransactionsQuery[0].AMOUNT : 0;
+        // Prepare the response data
+        const result = {
+            buyCashOutTransactions: buyCashOutTransactions,
+            sellCashInTransactions: sellCashInTransactions,
+            cashBalance: buyCashOutTransactions - sellCashInTransactions,
+            buyBankOutTransactions: buyBankOutTransactions,
+            sellBankInTransactions: sellBankInTransactions,
+            bankBalance: buyBankOutTransactions - sellBankInTransactions,
+        };
+        console.log('result:', result);
+
+        return res.status(200).json({ success: true, result });
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+
 module.exports = router;

@@ -45,6 +45,40 @@ router.post('/getItemDetails' , async (req, res) => {
     }
 });
 
+router.post('/getItemDetailsUsingCode' , async (req, res) => {
+    // console.log('Get Item Details request received:', req.body);
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active items
+        const queryResult = await pool.query('SELECT * FROM items WHERE IS_ACTIVE=1 AND CODE=?', req.body.code);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // Check if any items are found
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active items found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult[0];
+            // console.log(data);
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 
 // Now you can use pool.query with async/await
 router.post('/getAllRough', async (req, res) => {

@@ -45,6 +45,39 @@ router.post('/getAllCustomers', async (req, res) => {
     }
 });
 
+router.post('/getDueCustomers', async (req, res) => {
+    //console.log('Get all customers request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active customers
+        const queryResult = await pool.query('SELECT DISTINCT c.*  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE c.IS_ACTIVE = 1 AND t.IS_ACTIVE = 1 AND t.DUE_AMOUNT > 0 AND t.PAYMENT_ETA_END < NOW()');
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // Check if any customers are found
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active customers found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const customers = queryResult.map(customer => ({ ...customer }));
+
+            return res.status(200).json({ success: true, result: customers });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 
 router.post('/getCustomerDetails', async (req, res) => {
     console.log('Get customer details request received:', req.body);

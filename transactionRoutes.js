@@ -51,6 +51,380 @@ router.post('/getAllCashTransactions', async (req, res) => {
     }
 });
 
+router.post('/getAllBuyingTransactions', async (req, res) => {
+    //console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Buying"');
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+
+            for(let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            console.log('data:', data);
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getAllSellingTransactions', async (req, res) => {
+    //console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Selling"');
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+
+            for(let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            console.log('data:', data);
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getAllTransactionsCashBook', async (req, res) => {
+    //console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.IS_ACTIVE = 1');
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+
+            for(let i = 0; i < queryResult.length; i++) {
+                // queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                // queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            expencesArrayToBeAdded = [];
+
+            const expensesQuery = 'SELECT e.* , i.CODE as ITEM_CODE,i.ITEM_ID_AI FROM expenses e JOIN items i ON e.REFERENCE = i.ITEM_ID_AI WHERE e.IS_ACTIVE = 1';
+            const expenses = await pool.query(expensesQuery);
+
+            for(let i = 0; i < expenses.length; i++) {
+                const expense = expenses[i];
+                const expenseObj = {
+                    EXPENSES_ID: expense.EXPENSES_ID,
+                    DATE: expense.CREATED_DATE,
+                    CODE: expense.CODE,
+                    METHOD: expense.METHOD,
+                    PAYMENT_AMOUNT: expense.AMOUNT,
+                    TYPE: 'Expenses',
+                    ITEM_ID_AI: expense.REFERENCE,
+                    ITEM_CODE: expense.ITEM_CODE,
+                };
+                expencesArrayToBeAdded.push(expenseObj);
+            }
+
+
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            data.push(...expencesArrayToBeAdded);
+            console.log('data:', data);
+
+            // Sort the data array newest first
+            data.sort((a, b) => new Date(b.DATE) - new Date(a.DATE));
+
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/filterByShareholderCashBook', async (req, res) => {
+    //console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE i.SHARE_HOLDERS LIKE ? AND t.IS_ACTIVE = 1', [req.body.shareholder]);
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+
+            for(let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            expencesArrayToBeAdded = [];
+
+            const expensesQuery = 'SELECT e.* , i.CODE as ITEM_CODE,i.ITEM_ID_AI FROM expenses e JOIN items i ON e.REFERENCE = i.ITEM_ID_AI WHERE i.SHARE_HOLDERS LIKE ? AND e.IS_ACTIVE = 1';
+            const expenses = await pool.query(expensesQuery, [req.body.shareholder]);
+
+            for(let i = 0; i < expenses.length; i++) {
+                const expense = expenses[i];
+                const expenseObj = {
+                    EXPENSES_ID: expense.EXPENSES_ID,
+                    DATE: expense.CREATED_DATE,
+                    CODE: expense.CODE,
+                    METHOD: expense.METHOD,
+                    AMOUNT: expense.AMOUNT,
+                    TYPE: 'Expenses',
+                    ITEM_ID_AI: expense.REFERENCE,
+                    ITEM_CODE: expense.ITEM_CODE,
+                };
+                expencesArrayToBeAdded.push(expenseObj);
+            }
+
+
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            data.push(...expencesArrayToBeAdded);
+            // console.log('data:', data);
+
+            // Sort the data array newest first
+            data.sort((a, b) => new Date(b.DATE) - new Date(a.DATE));
+
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/filterByShareholderBuying', async (req, res) => {
+    // console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        const { shareholder } = req.body;
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query(`
+            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
+            FROM transactions t
+            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+            LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Buying" AND i.SHARE_HOLDERS LIKE ? 
+        `, [shareholder]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            for (let i = 0; i < queryResult.length; i++) {
+                const refCodeQuery = 'SELECT CODE as REF_CODE, AMOUNT as REF_AMOUNT, PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?';
+                queryResult[i].REF_CODE = await pool.query(refCodeQuery, [queryResult[i].REFERENCE_TRANSACTION]);
+
+                const paymentsQuery = 'SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?';
+                queryResult[i].PAYMENTS = await pool.query(paymentsQuery, [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            console.log('data:', data);
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+
+router.post('/filterByShareholderSelling', async (req, res) => {
+    // console.log('Get all Cash Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        const { shareholder } = req.body;
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query(`
+            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
+            FROM transactions t
+            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+            LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Selling" AND i.SHARE_HOLDERS LIKE ? 
+        `, [shareholder]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            for (let i = 0; i < queryResult.length; i++) {
+                const refCodeQuery = 'SELECT CODE as REF_CODE, AMOUNT as REF_AMOUNT, PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?';
+                queryResult[i].REF_CODE = await pool.query(refCodeQuery, [queryResult[i].REFERENCE_TRANSACTION]);
+
+                const paymentsQuery = 'SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ?';
+                queryResult[i].PAYMENTS = await pool.query(paymentsQuery, [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            console.log('data:', data);
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+
+router.post('/getTodayTransactionData', async (req, res) => {
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions with today's date
+        const queryResult = await pool.query(`
+            SELECT t.CODE, t.PAYMENT_AMOUNT,t.TYPE, i.CODE AS ITEM_CODE, c.NAME AS C_NAME
+            FROM transactions t
+            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+            LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+            WHERE t.IS_ACTIVE = 1 AND DATE(t.DATE) = CURDATE()
+        `);
+
+        if (queryResult.length !== 0) {
+            return res.status(200).json({ success: true, result: queryResult });
+        } else {
+            return res.status(404).json({ success: false, message: 'No transactions found for today' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+
+
 router.post('/getAllBankTransactions', async (req, res) => {
     //console.log('Get all Bank Transaction request received:');
     try {
@@ -191,6 +565,137 @@ router.post('/searchCash', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+
+router.post('/searchBuying', async (req, res) => {
+    //console.log('Search Cash request received:', req.body);
+
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        const { code, status, itemId, startDate, endDate } = req.body;
+
+        // Construct the WHERE clause based on the search criteria
+        const whereClause = [];
+        if (code) {
+            whereClause.push(`t.CODE LIKE '%${code}%'`);
+        }
+        if (status) {
+            whereClause.push(`t.METHOD = '${status}'`);
+        }
+        if (startDate && endDate) {
+            whereClause.push(`t.DATE BETWEEN '${startDate}' AND '${endDate}'`);
+        }
+
+        // Query to search for transactions based on the search criteria
+        const queryString = `
+            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.PHONE_NUMBER, c.COMPANY, c.CUSTOMER_ID
+            FROM transactions t
+            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+            JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Buying" ${whereClause.length > 0 ? 'AND ' + whereClause.join(' AND ') : ''}
+        `;
+
+        const queryResult = await pool.query(queryString);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            for (let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE, AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ? AND (TYPE="B Payment" OR TYPE="S Payment")', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+
+            return res.status(200).json({ success: true, result: data, message: 'Transactions found matching the search criteria' });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/searchSelling', async (req, res) => {
+    //console.log('Search Cash request received:', req.body);
+
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        const { code, status, itemId, startDate, endDate } = req.body;
+
+        // Construct the WHERE clause based on the search criteria
+        const whereClause = [];
+        if (code) {
+            whereClause.push(`t.CODE LIKE '%${code}%'`);
+        }
+        if (status) {
+            whereClause.push(`t.METHOD = '${status}'`);
+        }
+        if (startDate && endDate) {
+            whereClause.push(`t.DATE BETWEEN '${startDate}' AND '${endDate}'`);
+        }
+
+        // Query to search for transactions based on the search criteria
+        const queryString = `
+            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.PHONE_NUMBER, c.COMPANY, c.CUSTOMER_ID
+            FROM transactions t
+            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+            JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Selling" ${whereClause.length > 0 ? 'AND ' + whereClause.join(' AND ') : ''}
+        `;
+
+        const queryResult = await pool.query(queryString);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            for (let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE, AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ? AND (TYPE="B Payment" OR TYPE="S Payment")', [queryResult[i].TRANSACTION_ID]);
+
+                if (queryResult[i].DUE_AMOUNT > 0 && queryResult[i].PAYMENT_ETA_END !== null && queryResult[i].PAYMENT_ETA_END < new Date()) {
+                    queryResult[i].DUE = true;
+                    queryResult[i].NO_OF_LATE_DAYS = Math.floor((new Date() - queryResult[i].PAYMENT_ETA_END) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+
+            return res.status(200).json({ success: true, result: data, message: 'Transactions found matching the search criteria' });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 
 router.post('/searchBank', async (req, res) => {
     //console.log('Search Bank request received:', req.body);

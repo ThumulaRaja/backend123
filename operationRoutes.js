@@ -113,6 +113,8 @@ router.post('/addCutPolish', async (req, res) => {
 
         const selectQuery = await pool.query('SELECT * FROM items WHERE ITEM_ID_AI = ?', [req.body.REFERENCE_ID_CP]);
 
+        const statusChangeQuery = await pool.query('UPDATE items SET STATUS = ? WHERE ITEM_ID_AI = ?', [req.body.STATUS, req.body.REFERENCE_ID_CP]);
+
         delete selectQuery[0].ITEM_ID_AI;
         delete selectQuery[0].CODE;
         delete selectQuery[0].CP_BY;
@@ -137,6 +139,7 @@ router.post('/addCutPolish', async (req, res) => {
             STATUS: req.body.STATUS,
             WEIGHT_AFTER_CP: req.body.WEIGHT_AFTER_CP,
             REFERENCE_ID_CP: req.body.REFERENCE_ID_CP,
+            IS_IN_INVENTORY : 0,
         }
 
         insertQuery = await pool.query('INSERT INTO items SET ?', reInsertData);
@@ -149,6 +152,7 @@ router.post('/addCutPolish', async (req, res) => {
             OLD_REFERENCE: req.body.REFERENCE_ID_CP,
             REFERENCE: insertQuery.insertId,
             PHOTO: req.body.PHOTO,
+            IS_APPROVED: 0,
             REMARK: req.body.REMARK,
             CREATED_BY: req.body.CREATED_BY,
         }
@@ -163,7 +167,7 @@ router.post('/addCutPolish', async (req, res) => {
             // Update the CODE column with the generated code
             await pool.query('UPDATE cp SET CODE = ? WHERE CP_ID = ?', [code, insertId]);
 
-            return res.status(200).json({ success: true, message: 'Heat treatment added successfully' });
+            return res.status(200).json({ success: true, message: 'C & P added successfully' });
         } else {
             console.error('Error: Failed to add cp:', insertResult.message);
             return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -224,6 +228,47 @@ router.post('/updateCutPolish', async (req, res) => {
         }
     } catch (error) {
         console.error('Error updating cp:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/approveCutPolish', async (req, res) => {
+    //console.log('Update cp request received:', req.body);
+
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Extract the cp ID from the request body
+        cpData = {
+            IS_APPROVED: 1,
+        }
+
+        itemData = {
+            IS_IN_INVENTORY: 1,
+            IS_ACTIVE: 1,
+        }
+
+        // Update the cp data in the database
+        const updateResult1 = await pool.query('UPDATE cp SET ? WHERE CP_ID = ?', [
+            cpData,
+            req.body.CP_ID,
+        ]);
+        const updateResult2 = await pool.query('UPDATE items SET ? WHERE ITEM_ID_AI = ?', [
+            itemData,
+            req.body.REFERENCE,
+        ]);
+        if (updateResult1.affectedRows > 0 || updateResult2.affectedRows > 0) {
+            return res.status(200).json({ success: true, message: 'CP Approved successfully' });
+        } else {
+            console.error('Error: Failed to Approve cp:', updateResult1.message);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error Approving cp:', error);
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

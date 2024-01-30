@@ -172,9 +172,10 @@ router.post('/addHeatT', async (req, res) => {
             return res.status(500).json({ success: false, message: 'Internal server error' });
         }
         mainData ={
-            NAME: req.body.mainData.NAME,
+            // NAME: req.body.mainData.NAME,
             HT_ID: req.body.mainData.HT_ID,
             HEAT_BY: req.body.mainData.HT_BY,
+            IS_APPROVED: 0,
             DATE: req.body.mainData.DATE,
             REMARK: req.body.mainData.REMARK,
             CREATED_BY: req.body.mainData.CREATED_BY,
@@ -202,9 +203,6 @@ router.post('/addHeatT', async (req, res) => {
                     item.REFERENCE
                 ]);
             }
-
-
-
 
             return res.status(200).json({ success: true, message: 'Heat treatment added successfully' });
         } else {
@@ -271,7 +269,7 @@ router.post('/updateHeatT', async (req, res) => {
         }
 
         mainData ={
-            NAME: req.body.mainData.NAME,
+            // NAME: req.body.mainData.NAME,
             HT_ID: req.body.mainData.HT_ID,
             HEAT_BY: req.body.mainData.HT_BY,
             DATE: req.body.mainData.DATE,

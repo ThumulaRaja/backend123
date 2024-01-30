@@ -22,7 +22,7 @@ router.post('/getAllExpenses', async (req, res) => {
         }
 
         // Query to fetch all active Expenses
-        const queryResult = await pool.query('SELECT * FROM expenses WHERE IS_ACTIVE=1');
+        const queryResult = await pool.query('SELECT e.*, i.CODE AS REFERENCE_CODE FROM expenses e INNER JOIN items i ON e.REFERENCE = i.ITEM_ID_AI WHERE e.IS_ACTIVE = 1');
 
         // Check if queryResult is an array before trying to use .map
         if (Array.isArray(queryResult)) {
@@ -66,14 +66,11 @@ router.post('/addExpenses', async (req, res) => {
             // Update the CODE column with the generated code
             await pool.query('UPDATE expenses SET CODE = ? WHERE EXPENSES_ID = ?', [code, insertId]);
 
-            req.body.REFERENCE.split(',').forEach(async (element) => {
-                //items table cuurent EXPENSE_AMOUNT check
-                const queryResult = await pool.query('SELECT EXPENSE_AMOUNT FROM items WHERE ITEM_ID_AI=?',element);
-                const newAmount = queryResult[0].EXPENSE_AMOUNT + req.body.AMOUNT;
-                // Update the CODE column with the generated code
-                await pool.query('UPDATE items SET EXPENSE_AMOUNT = ? WHERE ITEM_ID_AI = ?', [newAmount, element]);
-            });
-cd
+
+            const queryResult = await pool.query('SELECT EXPENSE_AMOUNT FROM items WHERE ITEM_ID_AI=?',req.body.REFERENCE);
+            const newAmount = queryResult[0].EXPENSE_AMOUNT + req.body.AMOUNT;
+            await pool.query('UPDATE items SET EXPENSE_AMOUNT = ? WHERE ITEM_ID_AI = ?', [newAmount, req.body.REFERENCE]);
+
             return res.status(200).json({ success: true, message: 'expenses added successfully' });
         } else {
             console.error('Error: Failed to add Expenses:', insertResult.message);
@@ -101,6 +98,17 @@ router.post('/updateExpenses', async (req, res) => {
             return res.status(500).json({ success: false, message: 'Internal server error' });
         }
 
+        const queryResult = await pool.query('SELECT EXPENSE_AMOUNT FROM items WHERE ITEM_ID_AI=?',req.body.OLD_REFERENCE);
+        const newAmount = queryResult[0].EXPENSE_AMOUNT - req.body.OLD_AMOUNT;
+        await pool.query('UPDATE items SET EXPENSE_AMOUNT = ? WHERE ITEM_ID_AI = ?', [newAmount, req.body.OLD_REFERENCE]);
+
+        const queryResult2 = await pool.query('SELECT EXPENSE_AMOUNT FROM items WHERE ITEM_ID_AI=?',req.body.REFERENCE);
+        const newAmount2 = queryResult2[0].EXPENSE_AMOUNT + req.body.AMOUNT;
+        await pool.query('UPDATE items SET EXPENSE_AMOUNT = ? WHERE ITEM_ID_AI = ?', [newAmount2, req.body.REFERENCE]);
+
+        delete req.body.OLD_AMOUNT;
+        delete req.body.OLD_REFERENCE;
+
         // Extract the Expenses ID from the request body
         const { EXPENSES_ID, ...updatedCustomerData } = req.body;
 
@@ -109,6 +117,8 @@ router.post('/updateExpenses', async (req, res) => {
             updatedCustomerData,
             EXPENSES_ID,
         ]);
+
+
 
         if (updateResult.affectedRows > 0) {
             return res.status(200).json({ success: true, message: 'Expenses updated successfully' });
