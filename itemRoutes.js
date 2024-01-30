@@ -418,7 +418,7 @@ router.post('/searchCP', async (req, res) => {
 });
 
 router.post('/addItem', async (req, res) => {
-    //console.log('Add items request received:', req.body);
+    console.log('Add items request received:', req.body);
 
     try {
         // Ensure the MySQL connection pool is defined
@@ -471,13 +471,14 @@ router.post('/addItem', async (req, res) => {
                     STATUS: req.body.STATUS,
                     DATE: req.body.DATE,
                     REFERENCE: insertId,
-                    CUSTOMER: req.body.BUYER,
+                    CUSTOMER: req.body.SELLER,
                     AMOUNT: req.body.COST,
+                    PAYMENT_AMOUNT: req.body.GIVEN_AMOUNT,
                     AMOUNT_SETTLED: req.body.GIVEN_AMOUNT,
                     DUE_AMOUNT: req.body.COST - req.body.GIVEN_AMOUNT,
-                    SHARE_HOLDERS: req.body.SHARE_HOLDERS,
-                    SHARE_PERCENTAGE: req.body.SHARE_PERCENTAGE,
-                    SHARE_VALUE: req.body.COST * req.body.SHARE_PERCENTAGE / 100,
+                    SHARE_HOLDERS: req.body.SHARE_HOLDERS ? req.body.SHARE_HOLDERS : null,
+                    SHARE_PERCENTAGE: req.body.SHARE_PERCENTAGE ? req.body.SHARE_PERCENTAGE : null,
+                    SHARE_VALUE: req.body.COST && req.body.SHARE_PERCENTAGE ? req.body.COST * req.body.SHARE_PERCENTAGE / 100 : null,
                     OTHER_SHARES: req.body.OTHER_SHARES,
                     COMMENTS: req.body.COMMENTS,
                     CREATED_BY: req.body.CREATED_BY,

@@ -405,12 +405,14 @@ router.post('/getTodayTransactionData', async (req, res) => {
 
         // Query to fetch all active transactions with today's date
         const queryResult = await pool.query(`
-            SELECT t.CODE, t.PAYMENT_AMOUNT,t.TYPE, i.CODE AS ITEM_CODE, c.NAME AS C_NAME
+            SELECT t.CODE, t.PAYMENT_AMOUNT,t.TYPE,t.DATE, i.CODE AS ITEM_CODE, c.NAME AS C_NAME
             FROM transactions t
             JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
             LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
             WHERE t.IS_ACTIVE = 1 AND DATE(t.DATE) = CURDATE()
         `);
+
+        queryResult.sort((a, b) => new Date(b.DATE) - new Date(a.DATE));
 
         if (queryResult.length !== 0) {
             return res.status(200).json({ success: true, result: queryResult });
