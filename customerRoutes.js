@@ -80,7 +80,7 @@ router.post('/getDueCustomers', async (req, res) => {
 
 
 router.post('/getCustomerDetails', async (req, res) => {
-    console.log('Get customer details request received:', req.body);
+    // console.log('Get customer details request received:', req.body);
     try {
         // Ensure the MySQL connection pool is defined
         if (!pool) {
@@ -199,7 +199,7 @@ router.post('/deactivateCustomer', async (req, res) => {
 });
 
 router.post('/getCustomerTransactions', async (req, res) => {
-    console.log('Get all Customer Transaction request received:');
+    // console.log('Get all Customer Transaction request received:');
     try {
         // Ensure the MySQL connection pool is defined
         if (!pool) {
@@ -237,6 +237,294 @@ router.post('/getCustomerTransactions', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+
+router.post('/getCustomerBuyerTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.PHONE_NUMBER,c.COMPANY,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.CUSTOMER = ? AND t.IS_ACTIVE = 1 AND t.TYPE = "Selling"', [req.body.CUSTOMER_ID]);
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            for(let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ? AND (TYPE="B Payment" OR TYPE="S Payment")', [queryResult[i].TRANSACTION_ID]);
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerSellerTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.PHONE_NUMBER,c.COMPANY,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.CUSTOMER = ? AND t.IS_ACTIVE = 1 AND t.TYPE = "Buying"', [req.body.CUSTOMER_ID]);
+
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            for(let i = 0; i < queryResult.length; i++) {
+                queryResult[i].REF_CODE = await pool.query('SELECT CODE as REF_CODE,AMOUNT as REF_AMOUNT , PAYMENT_AMOUNT as REF_PAYMENT_AMOUNT, AMOUNT_SETTLED as REF_AMOUNT_SETTLED, DUE_AMOUNT as REF_DUE_AMOUNT FROM transactions WHERE IS_ACTIVE=1 AND TRANSACTION_ID= ?', [queryResult[i].REFERENCE_TRANSACTION]);
+                queryResult[i].PAYMENTS = await pool.query('SELECT * FROM transactions WHERE IS_ACTIVE=1 AND REFERENCE_TRANSACTION= ? AND (TYPE="B Payment" OR TYPE="S Payment")', [queryResult[i].TRANSACTION_ID]);
+            }
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerPartnerTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        // const queryResult = await pool.query('SELECT i.SHARE_HOLDERS,i.SHARE_PERCENTAGE,i.OTHER_SHARES,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.PHONE_NUMBER,c.COMPANY,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE t.CUSTOMER = ? AND t.IS_ACTIVE = 1 AND t.TYPE = "Buying"', [req.body.CUSTOMER_ID]);
+
+        const queryResult = await pool.query('SELECT SHARE_HOLDERS,SHARE_PERCENTAGE,OTHER_SHARES,ITEM_ID_AI, CODE as ITEM_CODE FROM items WHERE IS_ACTIVE=1 AND FIND_IN_SET(?, SHARE_HOLDERS) > 0', [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerSalesPersonTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query(`
+    SELECT i.ITEM_ID_AI, i.CODE AS ITEM_CODE, c.NAME AS C_NAME, 
+           c.PHONE_NUMBER, c.COMPANY, c.CUSTOMER_ID 
+    FROM items i 
+    LEFT JOIN customers c ON i.BUYER = c.CUSTOMER_ID 
+    WHERE i.STATUS = 'With Sales Person' AND i.IS_ACTIVE = 1 AND i.BEARER = ?
+`, [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerPreformerTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT ITEM_ID_AI,CODE FROM items WHERE STATUS="With Preformer" AND IS_ACTIVE=1 AND PERFORMER = ?', [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerCPTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT ITEM_ID_AI,CODE FROM items WHERE STATUS="With C&P" AND IS_ACTIVE=1 AND CP_BY = ?', [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerElectricTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT ITEM_ID_AI,CODE FROM items WHERE STATUS="With Electric T" AND IS_ACTIVE=1 AND ET_BY = ?', [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+router.post('/getCustomerHeatTTransactions', async (req, res) => {
+    // console.log('Get all Customer Transaction HT request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT ITEM_ID_AI,CODE FROM items WHERE STATUS="With Heat T" AND IS_ACTIVE=1 AND HT_BY = ?', [req.body.CUSTOMER_ID]);
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // console.log('queryResult:', queryResult);
+
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+            // console.log('data:', data);
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 
 
 

@@ -12,8 +12,8 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'nihalgemsdb123',
-    database: 'erp',
+    password: '',
+    database: 'erp1',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -27,7 +27,7 @@ module.exports = pool;
 // Include routes after exporting the pool
 app.use(require('./loginRoutes'));
 app.use(require('./customerRoutes'));
-app.use(require('./heatTreatmentGroupRoutes'));
+app.use(require('./TreatmentGroupRoutes'));
 app.use(require('./itemRoutes'));
 app.use(require('./transactionRoutes'));
 app.use(require('./expensesRoutes'));

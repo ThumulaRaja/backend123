@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        #container {
+            text-align: center;
+            width: 30mm;
+            height: 30mm;
+        }
+
+        #title {
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 1mm;
+            margin-top: 3mm;
+        }
+
+        #qrCode {
+            margin-top: 0mm;
+            margin-bottom: 0mm;
+        }
+
+        #qrImage {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+    </style>
+</head>
+<body>
+<div id="container">
+    <div id="title">{{code}}</div>
+    <div id="qrCode">
+        <img id="qrImage" src="{{qrLink}}" alt="QR Code">
+    </div>
+</div>
+</body>
+</html>

@@ -14,7 +14,7 @@ const pool = require('./index');
 router.post('/login', async (req, res, next) => {
     const { user, password } = req.body; // Update to 'user' for consistency
 
-    console.log('Login request received:', req.body);
+    // console.log('Login request received:', req.body);
 
     if (!pool) {
         console.error('Error: MySQL connection pool is not defined');
@@ -28,7 +28,7 @@ router.post('/login', async (req, res, next) => {
         }
 
         if (!user.length) {
-            console.log('Invalid username or password');
+            // console.log('Invalid username or password');
             return res.status(401).json({ message: 'Invalid username or password' });
         }
 
@@ -39,7 +39,7 @@ router.post('/login', async (req, res, next) => {
             }
 
             if (!passwordMatch) {
-                console.log('Invalid username or password');
+                // console.log('Invalid username or password');
                 return res.status(401).json({ message: 'Invalid username or password' });
             }
 
@@ -55,7 +55,7 @@ router.post('/login', async (req, res, next) => {
 });
 
 router.post('/addUser', async (req, res) => {
-    console.log('Add user request received:', req.body);
+    // console.log('Add user request received:', req.body);
 
     try {
         // Ensure the MySQL connection pool is defined
@@ -91,7 +91,7 @@ router.post('/addUser', async (req, res) => {
 router.post('/checkEmailUsername', async (req, res) => {
     const { EMAIL, USERNAME } = req.body;
 
-    console.log('Check email and username request received:', req.body);
+    // console.log('Check email and username request received:', req.body);
 
     if (!pool) {
         console.error('Error: MySQL connection pool is not defined');
@@ -121,7 +121,7 @@ router.post('/checkEmailUsername', async (req, res) => {
 router.post('/checkPassword', async (req, res) => {
     const { USER_ID, PASSWORD } = req.body;
 
-    console.log('Check password request received:', req.body);
+    // console.log('Check password request received:', req.body);
 
     if (!pool) {
         console.error('Error: MySQL connection pool is not defined');
@@ -139,7 +139,7 @@ router.post('/checkPassword', async (req, res) => {
             }
 
             if (!passwordMatch) {
-                console.log('Invalid password');
+                // console.log('Invalid password');
                 return res.status(200).json({ match: false });
             }
 

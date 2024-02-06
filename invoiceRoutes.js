@@ -6,8 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const pdf = require('html-pdf'); // Install this library: npm install html-pdf
 const QRCode = require('qrcode'); // Install this library: npm install qrcode
-
-
+const handlebars = require('handlebars');
 
 const pool = require('./index');
 router.use(cors());
@@ -38,6 +37,47 @@ router.post('/generateInvoice', async (req, res) => {
     }
 });
 
+router.post('/generateInvoiceByGenerator', async (req, res) => {
+    try {
+        const { data } = req.body;
+
+        for (let i = 0; i < data.ROW_TRANSACTIONS.length; i++) {
+            const itemCodeGetQuery = `SELECT CODE FROM items WHERE ITEM_ID_AI = ${data.ROW_TRANSACTIONS[i].REFERENCE}`;
+            const itemCodeGetResult = await pool.query(itemCodeGetQuery);
+            data.ROW_TRANSACTIONS[i].CODE = itemCodeGetResult[0].CODE;
+        }
+
+        customerNameGetQuery = `SELECT NAME,PHONE_NUMBER FROM customers WHERE CUSTOMER_ID = ${data.CUSTOMER}`;
+        const customerNameGetResult = await pool.query(customerNameGetQuery);
+        data.C_NAME = customerNameGetResult[0].NAME;
+        data.PHONE_NUMBER = customerNameGetResult[0].PHONE_NUMBER;
+
+
+        const templatePath = path.join(__dirname, 'gen-invoice-template.html');
+        const htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
+
+        // Compile the template
+        const compiledTemplate = handlebars.compile(htmlTemplate);
+
+        // Render the template with data
+        const renderedHtml = compiledTemplate(data);
+
+        pdf.create(renderedHtml).toBuffer((err, buffer) => {
+            if (err) {
+                console.error('Error generating PDF:', err);
+                res.json({ success: false, message: err.message });
+            } else {
+                console.log('PDF generated successfully!');
+                res.json({ success: true, data: buffer.toString('base64') });
+            }
+        });
+    } catch (error) {
+        console.error('Error generating PDF:', error.message);
+        res.json({ success: false, message: error.message });
+    }
+});
+
+
 router.post('/generateQR', async (req, res) => {
     try {
         const { data } = req.body;
@@ -47,13 +87,13 @@ router.post('/generateQR', async (req, res) => {
 
         // Generate QR code
         if (TYPE === 'Rough') {
-            qrLink = `http://localhost:3000/rough/${CODE}`;
+            qrLink = `app.nihalgems.com/rough/${CODE}`;
         } else if (TYPE === 'Sorted Lots') {
-            qrLink = `http://localhost:3000/sorted-lots/${CODE}`;
+            qrLink = `app.nihalgems.com/sorted-lots/${CODE}`;
         } else if (TYPE === 'Lots') {
-            qrLink = `http://localhost:3000/lots/${CODE}`;
+            qrLink = `app.nihalgems.com/lots/${CODE}`;
         } else if (TYPE === 'Cut and Polished') {
-            qrLink = `http://localhost:3000/c-p/${CODE}`;
+            qrLink = `app.nihalgems.com/c-p/${CODE}`;
         }
 
         const qrCodeDataUrl = await QRCode.toDataURL(qrLink);
@@ -64,7 +104,7 @@ router.post('/generateQR', async (req, res) => {
         const renderedHtml = htmlTemplate.replace('{{code}}', CODE).replace('{{qrLink}}', qrCodeDataUrl);
 
         // Set the page size to 40mm width and 40mm height
-        const pdfOptions = { width: '40mm', height: '40mm' }; // Assuming standard A4 size (297mm height)
+        const pdfOptions = { width: '30mm', height: '35mm' }; // Assuming standard A4 size (297mm height)
 
         pdf.create(renderedHtml, pdfOptions).toBuffer((err, buffer) => {
             if (err) {

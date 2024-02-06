@@ -115,38 +115,74 @@ router.post('/getTransactionData', async (req, res) => {
         // Calculate the date for the beginning of the previous year
         const previousYearStartDate = new Date();
         previousYearStartDate.setFullYear(previousYearStartDate.getFullYear() - 1);
-        previousYearStartDate.setMonth(0); // January
+        previousYearStartDate.setMonth(previousYearStartDate.getMonth() + 1); // 1 month back
         previousYearStartDate.setDate(1); // 1st day
 
         // Format the date for MySQL format (YYYY-MM-DD)
         const formattedStartDate = previousYearStartDate.toISOString().split('T')[0];
 
+        // console.log('formattedStartDate:', formattedStartDate);
+
         // Query to fetch buy transactions sum of amounts grouped by filtering months from DATE within the previous year
         const buyTransactionsQuery = await pool.query(`
-            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT, MONTH(DATE) AS MONTH
-            FROM transactions
-            WHERE IS_ACTIVE=1 AND (TYPE = "Buying" OR TYPE = "B Payment")
-            AND DATE >= '${formattedStartDate}'
-            GROUP BY MONTH(DATE)
-        `);
-        //console.log('buyTransactionsQuery:', buyTransactionsQuery);
+    SELECT COALESCE(SUM(CASE WHEN transactions.TYPE IN ("Buying", "B Payment") THEN transactions.PAYMENT_AMOUNT ELSE 0 END), 0) AS AMOUNT, months.MONTH
+    FROM (
+        SELECT 1 AS MONTH
+        UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7
+        UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+        UNION SELECT 11 UNION SELECT 12
+    ) months
+    LEFT JOIN transactions ON months.MONTH = MONTH(transactions.DATE)
+    AND transactions.IS_ACTIVE = 1 AND transactions.DATE >= '${formattedStartDate}'
+    GROUP BY months.MONTH
+`);
 
-        // Query to fetch sell transactions sum of amounts grouped by filtering months from DATE within the previous year
+        // console.log('buyTransactionsQuery:', buyTransactionsQuery);
+
+// Query to fetch sell transactions sum of amounts grouped by filtering months from DATE within the previous year
         const sellTransactionsQuery = await pool.query(`
-            SELECT SUM(PAYMENT_AMOUNT) AS AMOUNT, MONTH(DATE) AS MONTH
-            FROM transactions
-            WHERE IS_ACTIVE=1 AND (TYPE = "Selling" OR TYPE = "S Payment")
-            AND DATE >= '${formattedStartDate}'
-            GROUP BY MONTH(DATE)
-        `);
-        //console.log('sellTransactionsQuery:', sellTransactionsQuery);
+    SELECT COALESCE(SUM(CASE WHEN transactions.TYPE IN ("Selling", "S Payment") THEN transactions.PAYMENT_AMOUNT ELSE 0 END), 0) AS AMOUNT, months.MONTH
+    FROM (
+        SELECT 1 AS MONTH
+        UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7
+        UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+        UNION SELECT 11 UNION SELECT 12
+    ) months
+    LEFT JOIN transactions ON months.MONTH = MONTH(transactions.DATE)
+    AND transactions.IS_ACTIVE = 1 AND transactions.DATE >= '${formattedStartDate}'
+    GROUP BY months.MONTH
+`);
+
+        // console.log('sellTransactionsQuery:', sellTransactionsQuery);
+
+
+
+        // Function to arrange transactions array with 12 values
+        const arrangeTransactionsArrayWith12Values = (transactionsQuery, currentMonth) => {
+            const arrangedArray = [];
+
+            for (let i = 0; i < 12; i++) {
+                const targetMonth = (currentMonth - i + 12) % 12 || 12; // Calculate the target month considering modulo for wrapping to 12
+                const targetRow = transactionsQuery.find(row => row.MONTH === targetMonth);
+                arrangedArray.push(targetRow ? targetRow.AMOUNT : 0);
+            }
+
+            //reverse the array
+            arrangedArray.reverse();
+
+            return arrangedArray;
+        };
 
         // Prepare the response data
+        const currentMonth = new Date().getMonth() + 1;
+        // console.log('currentMonth:', currentMonth);
         const result = {
-            buyTransactions: arrangeTransactionsArray(buyTransactionsQuery),
-            sellTransactions: arrangeTransactionsArray(sellTransactionsQuery),
+            buyTransactions: arrangeTransactionsArrayWith12Values(buyTransactionsQuery,currentMonth),
+            sellTransactions: arrangeTransactionsArrayWith12Values(sellTransactionsQuery,currentMonth),
         };
-        //console.log('result:', result);
+        // console.log('result:', result);
 
         return res.status(200).json({ success: true, result });
     } catch (error) {
@@ -284,10 +320,10 @@ router.post('/getCashBookSumData', async (req, res) => {
         const result = {
             buyCashOutTransactions: buyCashOutTransactions,
             sellCashInTransactions: sellCashInTransactions,
-            cashBalance: buyCashOutTransactions - sellCashInTransactions,
+            cashBalance: sellCashInTransactions - buyCashOutTransactions,
             buyBankOutTransactions: buyBankOutTransactions,
             sellBankInTransactions: sellBankInTransactions,
-            bankBalance: buyBankOutTransactions - sellBankInTransactions,
+            bankBalance: sellBankInTransactions - buyBankOutTransactions,
         };
         console.log('result:', result);
 

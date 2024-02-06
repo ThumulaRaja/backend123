@@ -83,7 +83,7 @@ router.post('/getAllBuyingTransactions', async (req, res) => {
 
             // Convert the query result to a new array without circular references
             const data = queryResult.map(transactions => ({ ...transactions }));
-            console.log('data:', data);
+            // console.log('data:', data);
 
             return res.status(200).json({ success: true, result: data });
         } else {
@@ -128,7 +128,7 @@ router.post('/getAllSellingTransactions', async (req, res) => {
 
             // Convert the query result to a new array without circular references
             const data = queryResult.map(transactions => ({ ...transactions }));
-            console.log('data:', data);
+            // console.log('data:', data);
 
             return res.status(200).json({ success: true, result: data });
         } else {
@@ -196,10 +196,10 @@ router.post('/getAllTransactionsCashBook', async (req, res) => {
             // Convert the query result to a new array without circular references
             const data = queryResult.map(transactions => ({ ...transactions }));
             data.push(...expencesArrayToBeAdded);
-            console.log('data:', data);
+            // console.log('data:', data);
 
             // Sort the data array newest first
-            data.sort((a, b) => new Date(b.DATE) - new Date(a.DATE));
+            data.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
 
 
             return res.status(200).json({ success: true, result: data });
@@ -223,7 +223,7 @@ router.post('/filterByShareholderCashBook', async (req, res) => {
         }
 
         // Query to fetch all active transactions
-        const queryResult = await pool.query('SELECT t.*,i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME,c.CUSTOMER_ID  FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE i.SHARE_HOLDERS LIKE ? AND t.IS_ACTIVE = 1', [req.body.shareholder]);
+        const queryResult = await pool.query('SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID WHERE FIND_IN_SET(?, i.SHARE_HOLDERS) > 0 AND t.IS_ACTIVE = 1', [req.body.shareholder]);
 
 
         // Check if queryResult is an array before trying to use .map
@@ -298,12 +298,13 @@ router.post('/filterByShareholderBuying', async (req, res) => {
 
         // Query to fetch all active transactions
         const queryResult = await pool.query(`
-            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
-            FROM transactions t
-            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
-            LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
-            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Buying" AND i.SHARE_HOLDERS LIKE ? 
-        `, [shareholder]);
+    SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
+    FROM transactions t
+    JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+    LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+    WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Buying" AND FIND_IN_SET(?, i.SHARE_HOLDERS) > 0
+`, [shareholder]);
+
 
         // Check if queryResult is an array before trying to use .map
         if (Array.isArray(queryResult)) {
@@ -326,7 +327,7 @@ router.post('/filterByShareholderBuying', async (req, res) => {
 
             // Convert the query result to a new array without circular references
             const data = queryResult.map(transactions => ({ ...transactions }));
-            console.log('data:', data);
+            // console.log('data:', data);
 
             return res.status(200).json({ success: true, result: data });
         } else {
@@ -353,12 +354,13 @@ router.post('/filterByShareholderSelling', async (req, res) => {
 
         // Query to fetch all active transactions
         const queryResult = await pool.query(`
-            SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
-            FROM transactions t
-            JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
-            LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
-            WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Selling" AND i.SHARE_HOLDERS LIKE ? 
-        `, [shareholder]);
+    SELECT t.*, i.ITEM_ID_AI, i.CODE as ITEM_CODE, c.NAME as C_NAME, c.CUSTOMER_ID
+    FROM transactions t
+    JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
+    LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
+    WHERE t.IS_ACTIVE = 1 AND t.TYPE = "Selling" AND FIND_IN_SET(?, i.SHARE_HOLDERS) > 0
+`, [shareholder]);
+
 
         // Check if queryResult is an array before trying to use .map
         if (Array.isArray(queryResult)) {
@@ -381,7 +383,7 @@ router.post('/filterByShareholderSelling', async (req, res) => {
 
             // Convert the query result to a new array without circular references
             const data = queryResult.map(transactions => ({ ...transactions }));
-            console.log('data:', data);
+            // console.log('data:', data);
 
             return res.status(200).json({ success: true, result: data });
         } else {
@@ -409,10 +411,10 @@ router.post('/getTodayTransactionData', async (req, res) => {
             FROM transactions t
             JOIN items i ON t.REFERENCE = i.ITEM_ID_AI
             LEFT JOIN customers c ON t.CUSTOMER = c.CUSTOMER_ID
-            WHERE t.IS_ACTIVE = 1 AND DATE(t.DATE) = CURDATE()
+            WHERE t.IS_ACTIVE = 1 AND DATE(t.CREATED_DATE) = CURDATE()
         `);
 
-        queryResult.sort((a, b) => new Date(b.DATE) - new Date(a.DATE));
+        queryResult.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
 
         if (queryResult.length !== 0) {
             return res.status(200).json({ success: true, result: queryResult });
@@ -424,8 +426,6 @@ router.post('/getTodayTransactionData', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
-
-
 
 router.post('/getAllBankTransactions', async (req, res) => {
     //console.log('Get all Bank Transaction request received:');
@@ -467,7 +467,7 @@ router.post('/getAllBankTransactions', async (req, res) => {
 });
 
 router.post('/getAllTransactions', async (req, res) => {
-    console.log('Get all Cash Transaction request received:req.body:', req.body);
+    // console.log('Get all Cash Transaction request received:req.body:', req.body);
     try {
         // Ensure the MySQL connection pool is defined
         if (!pool) {
@@ -800,10 +800,10 @@ router.post('/addTransaction', async (req, res) => {
             await pool.query('UPDATE transactions SET CODE = ? , REFERENCE_TRANSACTION = ? WHERE TRANSACTION_ID = ?', [code, insertId , insertId]);
 
             if(req.body.TYPE === 'Selling') {
-                await pool.query('UPDATE items SET STATUS = ? ,IS_IN_INVENTORY = 0, COMMENTS = ?, SHARE_HOLDERS = ?, SHARE_PERCENTAGE = ?, OTHER_SHARES = ?, PAYMENT_ETA_START = ?, PAYMENT_ETA_END = ?, DATE_FINISHED = ?, SOLD_AMOUNT = ?, AMOUNT_RECEIVED = ?, DUE_AMOUNT = ?, SELLER = ?, BEARER = ?, DATE_SOLD = ? WHERE ITEM_ID_AI = ?', [req.body.STATUS , req.body.COMMENTS, req.body.SHARE_HOLDERS, req.body.SHARE_PERCENTAGE, req.body.OTHER_SHARES, req.body.PAYMENT_ETA_START, req.body.PAYMENT_ETA_END, req.body.DATE_FINISHED, req.body.AMOUNT, req.body.AMOUNT_SETTLED, req.body.DUE_AMOUNT, req.body.CUSTOMER, req.body.BEARER, req.body.DATE, req.body.REFERENCE]);
+                await pool.query('UPDATE items SET STATUS = ? ,IS_IN_INVENTORY = 0, COMMENTS = ?, SHARE_HOLDERS = ?, SHARE_PERCENTAGE = ?, OTHER_SHARES = ?, PAYMENT_ETA_START = ?, PAYMENT_ETA_END = ?, DATE_FINISHED = ?, SOLD_AMOUNT = ?, AMOUNT_RECEIVED = ?, DUE_AMOUNT = ?, BUYER = ?, BEARER = ?, DATE_SOLD = ? WHERE ITEM_ID_AI = ?', [req.body.STATUS , req.body.COMMENTS, req.body.SHARE_HOLDERS, req.body.SHARE_PERCENTAGE, req.body.OTHER_SHARES, req.body.PAYMENT_ETA_START, req.body.PAYMENT_ETA_END, req.body.DATE_FINISHED, req.body.AMOUNT, req.body.AMOUNT_SETTLED, req.body.DUE_AMOUNT, req.body.CUSTOMER, req.body.BEARER, req.body.DATE, req.body.REFERENCE]);
             }
             else if(req.body.TYPE === 'Buying') {
-                await pool.query('UPDATE items SET STATUS = ? , COMMENTS = ?, SHARE_HOLDERS = ?, SHARE_PERCENTAGE = ?, OTHER_SHARES = ?, PAYMENT_ETA_START = ?, PAYMENT_ETA_END = ?, DATE_FINISHED = ?, COST = ?, GIVEN_AMOUNT = ?, BUYER = ?, IS_TRANSACTION = ? , PAYMENT_METHOD = ?  WHERE ITEM_ID_AI = ?', [req.body.STATUS , req.body.COMMENTS, req.body.SHARE_HOLDERS, req.body.SHARE_PERCENTAGE, req.body.OTHER_SHARES, req.body.PAYMENT_ETA_START, req.body.PAYMENT_ETA_END, req.body.DATE_FINISHED, req.body.AMOUNT, req.body.AMOUNT_SETTLED, req.body.CUSTOMER, 1, req.body.METHOD, req.body.REFERENCE]);
+                await pool.query('UPDATE items SET STATUS = ? , COMMENTS = ?, SHARE_HOLDERS = ?, SHARE_PERCENTAGE = ?, OTHER_SHARES = ?, PAYMENT_ETA_START = ?, PAYMENT_ETA_END = ?, DATE_FINISHED = ?, COST = ?, GIVEN_AMOUNT = ?, SELLER = ?, IS_TRANSACTION = ? , PAYMENT_METHOD = ?  WHERE ITEM_ID_AI = ?', [req.body.STATUS , req.body.COMMENTS, req.body.SHARE_HOLDERS, req.body.SHARE_PERCENTAGE, req.body.OTHER_SHARES, req.body.PAYMENT_ETA_START, req.body.PAYMENT_ETA_END, req.body.DATE_FINISHED, req.body.AMOUNT, req.body.AMOUNT_SETTLED, req.body.CUSTOMER, 1, req.body.METHOD, req.body.REFERENCE]);
             }
 
             return res.status(200).json({ success: true, message: 'transactions added successfully' });
@@ -891,9 +891,9 @@ router.post('/addPayment', async (req, res) => {
 
 
             if (req.body.TYPE === 'Selling') {
-                await pool.query('UPDATE items SET STATUS = ?, SOLD_AMOUNT = ?, AMOUNT_RECEIVED = ?, DUE_AMOUNT = ?, SELLER = ?, BEARER = ? WHERE ITEM_ID_AI = ?', [re.STATUS, re.AMOUNT, re.AMOUNT_SETTLED, re.DUE_AMOUNT, re.CUSTOMER, re.BEARER, re.REFERENCE]);
+                await pool.query('UPDATE items SET STATUS = ?, SOLD_AMOUNT = ?, AMOUNT_RECEIVED = ?, DUE_AMOUNT = ?, BUYER = ?, BEARER = ? WHERE ITEM_ID_AI = ?', [re.STATUS, re.AMOUNT, re.AMOUNT_SETTLED, re.DUE_AMOUNT, re.CUSTOMER, re.BEARER, re.REFERENCE]);
             } else if (req.body.TYPE === 'Buying') {
-                await pool.query('UPDATE items SET STATUS = ?, COST = ?, GIVEN_AMOUNT = ?, BUYER = ? WHERE ITEM_ID_AI = ?', [re.STATUS, re.AMOUNT, re.AMOUNT_SETTLED, re.CUSTOMER, re.REFERENCE]);
+                await pool.query('UPDATE items SET STATUS = ?, COST = ?, GIVEN_AMOUNT = ?, SELLER = ? WHERE ITEM_ID_AI = ?', [re.STATUS, re.AMOUNT, re.AMOUNT_SETTLED, re.CUSTOMER, re.REFERENCE]);
             }
             return res.status(200).json({ success: true, message: 'Payment added successfully' });
         } else {
@@ -1028,6 +1028,38 @@ router.post('/getTransactionForReference', async (req, res) => {
     }
 });
 
+router.post('/getAllTransactionForReference', async (req, res) => {
+    //console.log('Get all HT request received:');
+    try {
+        // Ensure the MySQL connection pool is defined
+        if (!pool) {
+            console.error('Error: MySQL connection pool is not defined');
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+
+        // Query to fetch all active transactions
+        const queryResult = await pool.query('SELECT t.TRANSACTION_ID, t.CODE, i.CODE as ITEM_CODE FROM transactions t JOIN items i ON t.REFERENCE = i.ITEM_ID_AI WHERE t.IS_ACTIVE = 1');
+
+        // Check if queryResult is an array before trying to use .map
+        if (Array.isArray(queryResult)) {
+            // Check if any transactions are found
+            if (queryResult.length === 0) {
+                return res.status(404).json({ success: false, message: 'No active transactions found' });
+            }
+
+            // Convert the query result to a new array without circular references
+            const data = queryResult.map(transactions => ({ ...transactions }));
+
+            return res.status(200).json({ success: true, result: data });
+        } else {
+            console.error('Error: queryResult is not an array:', queryResult);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+    } catch (error) {
+        console.error('Error executing MySQL query:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
 router.post('/getTransactionDetails', async (req, res) => {
     //console.log('Get transactions Details request received:', req.body);
     try {
