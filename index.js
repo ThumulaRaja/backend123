@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: '',
+    password: 'nihalgemsdb123',
     database: 'erp1',
     waitForConnections: true,
     connectionLimit: 10,
